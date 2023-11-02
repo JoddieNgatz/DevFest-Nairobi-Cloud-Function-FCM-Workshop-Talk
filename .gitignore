@@ -128,3 +128,12 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+cloud-functions/notes.txt
+flutter_notification_client/ios/Runner/GoogleService-Info.plist
+flutter_notification_client/ios/Runner/Info.plist
+flutter_notification_client/lib/firebase_options.dart
+flutter_notification_client/macos/firebase_app_id_file.json
+flutter_notification_client/macos/Runner/GoogleService-Info.plist
+flutter_notification_client/macos/Runner/Info.plist
+flutter_notification_client/ios/firebase_app_id_file.json
+flutter_notification_client/android/app/google-services.json

@@ -7,57 +7,116 @@ const admin = require("firebase-admin");
 admin.initializeApp();
 
 const FieldValue = require("firebase-admin").firestore.FieldValue;
+// Imports the Google Cloud client library
+const { PubSub } = require('@google-cloud/pubsub');
+// Creates a client; cache this for further use
+const pubSubClient = new PubSub();
+
+//Import functions from diffrent files.
+const analytics = require("./seperatedFunctions/analytics");
+const auth = require("./seperatedFunctions/auth");
+const firestore = require("./seperatedFunctions/firestore");
+const storage = require("./seperatedFunctions/storage");
+const topic_scheduled = require("./seperatedFunctions/topic_scheduled");
+
+//other functions
+
+exports.sendCouponOnPurchase = analytics.sendCouponOnPurchase;
+
+exports.sendWelcomeNotification = auth.sendWelcomeNotification;
+exports.sendByeNotification = auth.sendByeNotification;
+
+exports.sendOrderPlacedNotification = firestore.sendOrderPlacedNotification;
+exports.sendOrderUpdatedNotification = firestore.sendOrderUpdatedNotification;
+exports.sendOrderDeletedNotification = firestore.sendOrderDeletedNotification;
+exports.sendOrderUpdatedNotification = firestore.sendOrderUpdatedNotification;
+
+exports.backup = storage.backup;
+exports.backupArchived = storage.backupArchived;
+exports.backupDeleted = storage.backupDeleted;
+
+exports.scheduler = topic_scheduled.unpaidOrdersReminder;
+exports.pubSub = topic_scheduled.pubSub;
+
+
+//Http Triggered Functions
 
 exports.helloWorld = functions.https.onRequest((request, response) => {
   functions.logger.info("Hello logs!", { structuredData: true });
-  response.send("Hello from Firebase!");
+  response.send("Hello from Devfest!");
 });
 
 
-// Firestore Triggered Notifications
 
-exports.sendOrderPlacedNotification = functions.firestore
-  .document("/Orders/{orderId}")
-  .onCreate(async (snapshot, context) => {
-    functions.logger.info("Hello logs!", { structuredData: true });
-    response.send("Hello from Firebase!");
-  });
+exports.sendNotification = functions.https.onRequest(async (request, response) => {
+  functions.logger.info("Hello logs!", { structuredData: true });
 
-exports.sendOrderUpdatedNotification = functions.firestore
-  .document("/Orders/{orderId}")
-  .onUpdate(async (snapshot, context) => {
+  const data = request.body;
+  // Call the helper function to send the notification
+  await sendNotification(data);
+  console.log('Hello from Devfest: ', data);
+  response.send("Devfest!");
 
-    //When an order document is updated in firestore
+});
 
-    //send single notification
-     
-    //send multicast notifications
-  });
+
+exports.sendNNewHello = functions.https.onRequest(async (request, response) => {
+  functions.logger.info("Hello Devfest!", { structuredData: true });
+
+  console.log('Hello from Devfest: ', data);
+  response.send("Devfest!");
+
+});
+
+
+// Register an HTTP function with the Functions Framework
+exports.webHook = functions.https.onRequest((request, response) => {
+  // Check for POST request
+  if (request.method !== 'POST') {
+    response.status(405).send('Method Not Allowed');
+    return;
+  }
+
+  try {
+    // Process the webhook payload
+    const data = request.body;
+    console.log('Received webhook payload:', data);
+
+    // TODO: Add your webhook logic here
+
+    // Responding to the webhook
+    response.status(200).send('Webhook received successfully!');
+  } catch (e) {
+    console.error('Error processing webhook', e);
+    response.status(500).send('Internal Server Error');
+  }
+});
+
+
+exports.publishToTopic = functions.https.onRequest(async (request, response) => {
+  if (request.method !== 'POST') {
+    res.status(405).send('Method Not Allowed');
+    return;
+  }
+
+  try {
+
+    const pubSubClient = PubSub();
+    const topicName = 'pubSub';
+    const data = JSON.stringify(request.body);
+    const dataBuffer = Buffer.from(data);
+
+    const messageId = await pubSubClient.topic(topicName).publish(dataBuffer);
+    response.status(200).send(`Message ${messageId} published.`);
+  } catch (error) {
+    console.error('Error publishing to Pub/Sub', error);
+    response.status(500).send('Internal Server Error');
+  }
+});
 
 
 //send combined message notification to single device
-function sendNotification(token, orderId, title, body, tab) {
-  const message = {
-    notification: {
-      title,
-      body,
-    },
-    data: {
-      title,
-      body,
-      click_action: "FLUTTER_NOTIFICATION_CLICK",
-      tab: tab,
-      orderId,
-    },
-    android: {
-      notification: {
-        sound: "default",
-        image:
-          "https://res.cloudinary.com/startup-grind/image/upload/c_fill,dpr_2.0,f_auto,g_center,q_auto:good/v1/gcs/platform-data-goog/events/DF22-Bevy-EventThumb%402x_7wlrADr.png",
-      },
-    },
-    token,
-  };
+function sendNotification(message) {
   admin
     .messaging()
     .send(message)
@@ -70,55 +129,4 @@ function sendNotification(token, orderId, title, body, tab) {
       console.log("Error sending message:", error);
       return;
     });
-}
-
-
-
-
-
-//send new reward notification to a user
-function multicastNotifications(tokens, title, body, tab, orderId) {
-  try {
-    const message = {
-      notification: {
-        title,
-        body,
-      },
-      data: {
-        click_action: "FLUTTER_NOTIFICATION_CLICK",
-        tab: tab,
-        orderId,
-      },
-      android: {
-        notification: {
-          sound: "default",
-          image:
-            "https://res.cloudinary.com/startup-grind/image/upload/c_fill,dpr_2.0,f_auto,g_center,q_auto:good/v1/gcs/platform-data-goog/events/DF22-Bevy-EventThumb%402x_7wlrADr.png",
-        },
-      },
-      tokens,
-    };
-    admin
-      .messaging()
-      .sendMulticast(message)
-      .then((response) => {
-        console.log("Successfully sent message:", response);
-        if (response.failureCount > 0) {
-          const failedTokens = [];
-          response.responses.forEach((resp, idx) => {
-            if (!resp.success) {
-              failedTokens.push(tokens[idx]);
-            }
-          });
-          console.log("List of tokens that caused failures: " + failedTokens);
-        }
-        return;
-      })
-      .catch((error) => {
-        console.log("Error sending multicast notification:", error);
-        return;
-      });
-  } catch (err) {
-    console.log("Error sending multicast notification:", err);
-  }
 }

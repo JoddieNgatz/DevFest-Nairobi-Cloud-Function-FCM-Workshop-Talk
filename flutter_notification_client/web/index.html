@@ -41,6 +41,19 @@
 </head>
 <body>
   <script>
+    <!--Update with yours config-->
+    const firebaseConfig = {
+  apiKey: "AIzaSyBSFicqAo4z_OfQi0hPVXxQhst6NpED45E",
+  authDomain: "test2-cloud-functions.firebaseapp.com",
+  projectId: "test2-cloud-functions",
+  storageBucket: "test2-cloud-functions.appspot.com",
+  messagingSenderId: "717544126722",
+  appId: "1:717544126722:web:0034936c6de2ac97ca6a1b"
+};
+
+      firebase.initializeApp(firebaseConfig);
+      </script>
+  <script>
     window.addEventListener('load', function(ev) {
       // Download main.dart.js
       _flutter.loader.loadEntrypoint({
@@ -54,6 +67,13 @@
         }
       });
     });
+    </script>
+    <script>
+  if ("serviceWorker" in navigator) {
+      window.addEventListener("load", function () {
+        navigator.serviceWorker.register("/firebase-messaging-sw.js");
+      });
+    }
   </script>
 </body>
 </html>

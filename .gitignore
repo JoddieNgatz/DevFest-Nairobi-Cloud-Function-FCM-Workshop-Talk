@@ -137,3 +137,5 @@ flutter_notification_client/macos/Runner/GoogleService-Info.plist
 flutter_notification_client/macos/Runner/Info.plist
 flutter_notification_client/ios/firebase_app_id_file.json
 flutter_notification_client/android/app/google-services.json
+cloud-functions/functions/index.js
+cloud-functions/firebase.json
